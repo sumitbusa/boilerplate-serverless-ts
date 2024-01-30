@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  Backend APIs support 
+
+Parameters:
+  DBWRITEHOST:
+    Description: "Required. The Database hostname or URL"
+    Type: "String"
+    Default: "65.1.205.67"
+  DBWRITENAME:
+    Description: "Required. The Database name"
+    Type: "String"
+    Default: "dev"
+  DBWRITEUSER:
+    Description: "Required. Db user"
+    Type: "String"
+    Default: "root"
+  DBWRITEPASSWORD:
+    Description: "Required. Db password"
+    Type: "String"
+    Default: "0FZWSK7C#9"
+  DBWRITEPORT:
+    Description: "Required. Db port"
+    Type: "String"
+    Default: "3306"
+  DBWRITEQUEUELIMIT:
+    Description: "Required. Db queue limit"
+    Type: "String"
+    Default: "100"
+  DBWRITECONNECTIONLIMIT:
+    Description: "Required. Db connection limit"
+    Type: "String"
+    Default: "10"
+  DBREADHOST:
+    Description: "Required. The Database hostname or URL"
+    Type: "String"
+    Default: "65.1.205.67"
+  DBREADNAME:
+    Description: "Required. The Database name"
+    Type: "String"
+    Default: "dev"
+  DBREADUSER:
+    Description: "Required. Db user"
+    Type: "String"
+    Default: "root"
+  DBREADPASSWORD:
+    Description: "Required. Db password"
+    Type: "String"
+    Default: "0FZWSK7C#9"
+  DBREADPORT:
+    Description: "Required. Db port"
+    Type: "String"
+    Default: "3306"
+  DBREADQUEUELIMIT:
+    Description: "Required. Db queue limit"
+    Type: "String"
+    Default: "100"
+  DBREADCONNECTIONLIMIT:
+    Description: "Required. Db connection limit"
+    Type: "String"
+    Default: "20"
+  USERPOOLID:
+    Description: "Cognito User Pool Id"
+    Type: "String"
+    Default: "ap-south-1_HWil8K31i"
+  CLIENTID:
+    Description: "Cognito User Client Id"
+    Type: "String"
+    Default: "44lrf054id8d04vgud38gajoc4"
+  COGNITOCONFIGKEY:
+    Description: "Cognito config key to validate the cognito token in auth function"
+    Type: "String"
+    Default: "envCognitoConfigKey"
+  JWTPUBKEY:
+    Description: "Public key for decoding JWT tokens, frontend app tokens"
+    Type: "String"
+    Default: "envJwtPubKey"
+  JWTREFRESHKEY:
+    Description: "Public key for decoding JWT refresh tokens , frontend app tokens"
+    Type: "String"
+    Default: "envJwtRefreshKey"
+
+
+Globals:
+  Api:
+    Auth:
+      AddDefaultAuthorizerToCorsPreflight: false
+      DefaultAuthorizer: RequestAuthorizer
+      Authorizers:
+        RequestAuthorizer:
+          FunctionPayloadType: REQUEST
+          FunctionArn: !GetAtt AuthMiddleware.Arn
+          Identity:
+            ReauthorizeEvery: 0
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS,PATCH,DELETE,PUT'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+    GatewayResponses:
+      DEFAULT_4xx:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Methods: "'GET,POST,OPTIONS,PATCH,DELETE,PUT'"
+            Access-Control-Allow-Headers: "'*'"
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Credentials: "'*'"
+      DEFAULT_5xx:
+        ResponseParameters:
+          Headers:
+            Access-Control-Allow-Methods: "'GET,POST,OPTIONS,PATCH,DELETE,PUT'"
+            Access-Control-Allow-Headers: "'*'"
+            Access-Control-Allow-Origin: "'*'"
+            Access-Control-Allow-Credentials: "'*'"
+  Function:
+    Timeout: 3
+    
+Resources:
+  lambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        - arn:aws:iam::aws:policy/AmazonSESFullAccess
+        - arn:aws:iam::484748509000:policy/cognito_user
+        # - arn:aws:iam::484748509000:policy/oku-userpool
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  LayerCommons:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: layers/commons/
+      CompatibleRuntimes:
+        - nodejs16.x
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: makefile
+      Environment:
+        Variables:
+          DBWRITEHOST: !Ref DBWRITEHOST
+          DBWRITEPORT: !Ref DBWRITEPORT
+          DBWRITENAME: !Ref DBWRITENAME
+          DBWRITEUSER: !Ref DBWRITEUSER
+          DBWRITEPASSWORD: !Ref DBWRITEPASSWORD
+          DBWRITECONNECTIONLIMIT: !Ref DBWRITECONNECTIONLIMIT
+          DBWRITEQUEUELIMIT: !Ref DBWRITEQUEUELIMIT
+          DBREADHOST: !Ref DBREADHOST
+          DBREADPORT: !Ref DBREADPORT
+          DBREADNAME: !Ref DBREADNAME
+          DBREADUSER: !Ref DBREADUSER
+          DBREADPASSWORD: !Ref DBREADPASSWORD 
+          DBREADCONNECTIONLIMIT: !Ref DBREADCONNECTIONLIMIT
+          DBREADQUEUELIMIT: !Ref DBREADQUEUELIMIT
+          USERPOOLID: !Ref USERPOOLID
+          CLIENTID: !Ref CLIENTID
+          COGNITOCONFIGKEY: !Ref COGNITOCONFIGKEY
+          JWTPUBKEY: !Ref JWTPUBKEY
+          JWTREFRESHKEY: !Ref JWTREFRESHKEY
+
+  AuthMiddleware:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/authenticate/
+      Handler: authMiddleware.lambdaHandler
+      Role: !GetAtt lambdaExecutionRole.Arn
+      Layers:
+        - !Ref LayerCommons # the commons layer
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+    Metadata: # esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        External:
+          - commons # the layer module must be declared as external
+        Minify: true
+        Target: "es2020"
+        EntryPoints:
+          - authMiddleware.ts
+
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/hello-world/
+      Handler: app.lambdaHandler
+      FunctionName: oku-HelloWorldFunction
+      Role: !GetAtt lambdaExecutionRole.Arn
+      Layers:
+        - !Ref LayerCommons # the commons layer
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+    Metadata: # esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        External:
+          - commons # the layer module must be declared as external
+        Minify: true
+        Target: "es2020"
+        EntryPoints:
+          - app.ts
+
+  Authenticate:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/authenticate/
+      Handler: app.lambdaHandler
+      FunctionName: oku-Authenticate
+      Role: !GetAtt lambdaExecutionRole.Arn
+      Layers:
+        - !Ref LayerCommons # the commons layer
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+      Events:
+        Authenticate:
+          Type: Api
+          Properties:
+            Auth:
+              Authorizer: NONE
+            Path: /authenticate
+            Method: post
+    Metadata: # esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        External:
+          - commons # the layer module must be declared as external
+        Minify: true
+        Target: "es2020"
+        EntryPoints:
+          - app.ts

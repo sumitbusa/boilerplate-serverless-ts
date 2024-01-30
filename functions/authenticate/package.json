@@ -1,0 +1,10 @@
+{
+  "name": "authenticate",
+  "description": "Authenticate",
+  "main": "app.ts",
+  "version": "1.0.0",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "0.17.19"
+  }
+}

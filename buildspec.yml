@@ -1,0 +1,17 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - rm -rf .git/
+      - sed -i 's/envStackname/'"$envStackname"'/g' template.yml
+      - sed -i 's/envLogRetentionDays/'"$envLogRetentionDays"'/g' template.yml
+      - sed -i 's/envTracingMode/'"$envTracingMode"'/g' template.yml
+      - npm prune --production
+      - rm -rf package-lock.json
+  build:
+    commands:
+      - sam build
+  post_build:
+    commands:
+      - sam deploy --stack-name oku-backend-dev --s3-bucket oku-backend $envDeployment --no-progressbar --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --parameter-overrides DBWRITEHOST=\"$envDBWriteHost\" DBWRITENAME=\"$envDBWriteName\" DBWRITEUSER=\"$envDBWriteUser\" DBWRITEPASSWORD=\"$envDBWritePassword\" DBWRITEPORT=\"$envDBWritePort\" DBWRITEQUEUELIMIT=\"$envDBWriteQueueLimit\" DBWRITECONNECTIONLIMIT=\"$envDBWriteConnectionLimit\" DBREADHOST=\"$envDBReadHost\" DBREADNAME=\"$envDBReadName\" DBREADUSER=\"$envDBReadUser\" DBREADPASSWORD=\"$envDBReadPassword\" DBREADPORT=\"$envDBReadPort\" DBREADQUEUELIMIT=\"$envDBReadQueueLimit\" DBREADCONNECTIONLIMIT=\"$envDBReadConnectionLimit\" BUCKETNAME=\"$envBucketName\" AWSREGIONNAME=\"$envRegion\" DEPLOYMENT=\"$envDeployment\" USERPOOLID=\"$envCognitoPoolID\" CLIENTID=\"$envCognitoClientID\" COGNITOCONFIGKEY=\"$envCognitoConfigKey\" JWTPUBKEY=\"$envJwtPubKey\" ENVCOGCONF=\"$envCogConf\" S3CLOUDFRONT=\"$envS3CloudFrontUrl\" CARTOONTOKEN=\"$envCartoonToken\"

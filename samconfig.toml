@@ -1,0 +1,31 @@
+version = 0.1
+[default.global.parameters]
+region = "ap-south-1"
+
+[default.deploy.parameters]
+no_confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+
+[dev.deploy.parameters]
+stack_name = "oku-dev-env"
+s3_bucket = "oku_backend_dev"
+s3_prefix = "oku-dev-artifacts"
+tags = "Developer=\"iProgrammer\" Application=\"oku-stage\" Environment=\"Dev\" Env=\"dev\""
+
+[stage.deploy.parameters]
+stack_name = "oku-stage-env"
+s3_bucket = "oku_backend_dev"
+s3_prefix = "oku-stage-artifacts"
+tags = "Developer=\"iProgrammer\" Application=\"oku-stage\" Environment=\"Stage\" Env=\"stage\""
+
+[preprod.deploy.parameters]
+stack_name = "oku-preprod"
+s3_bucket = "oku_backend_dev"
+s3_prefix = "oku-preprod-artifacts"
+tags = "Developer=\"iProgrammer\" Application=\"oku-preprod\" Environment=\"PreProd\" Env=\"preprod\""
+
+[prod.deploy.parameters]
+stack_name = "oku-production"
+s3_bucket = "oku_backend_dev"
+s3_prefix = "oku-production-artifacts"
+tags = "Developer=\"iProgrammer\" Application=\"oku-production\" Environment=\"Production\" Env=\"production\""
